@@ -1,0 +1,217 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Anime {
+    id               Int            @id @default(autoincrement())
+    anilistId        Int?
+    franchiseKey     String?
+    franchiseOrder   Int?
+    slug             String         @unique
+    titleEnglish     String
+    titleJapanese    String?
+    titleAlternative String[]
+    animeType        AnimeType
+    animeStatus      AnimeStatus
+    aired            String?
+    premiered        String?
+    overview         String?
+    coverImg         String
+    bannerImg        String
+    createdAt        DateTime       @default(now())
+    updatedAt        DateTime       @updatedAt
+    episodes         Episode[]
+    notiSubs         NotiSub[]
+    watchHistorys    WatchHistory[]
+    watchLaters      WatchLater[]
+    genres           Genre[]        @relation("AnimeToGenre")
+    studios          Studio[]       @relation("AnimeToStudio")
+}
+
+model Episode {
+    id            Int           @id @default(autoincrement())
+    animeId       Int
+    episodeNumber Int
+    episodeName   String
+    createdAt     DateTime      @default(now())
+    updatedAt     DateTime      @updatedAt
+    comments      Comment[]
+    anime         Anime         @relation(fields: [animeId], references: [id])
+    videoSources  VideoSource[]
+}
+
+model VideoSource {
+    id         Int      @id @default(autoincrement())
+    episodeId  Int
+    host       String
+    resolution String?  @default("auto")
+    url        String
+    createdAt  DateTime @default(now())
+    episode    Episode  @relation(fields: [episodeId], references: [id])
+}
+
+model User {
+    id             Int             @id @default(autoincrement())
+    username       String
+    email          String          @unique
+    hashedPassword String          @unique
+    avatarUrl      String?
+    userRole       UserRole        @default(USER)
+    userStatus     UserStatus      @default(ACTIVE)
+    mutedUntil     DateTime?
+    bannedUntil    DateTime?
+    createdAt      DateTime        @default(now())
+    updatedAt      DateTime        @updatedAt
+    comments       Comment[]
+    commentReports CommentReport[]
+    notiSubs       NotiSub[]
+    notifications  Notification[]
+    setting        Setting?
+    watchHistory   WatchHistory[]
+    watchLater     WatchLater[]
+    refreshTokens  RefreshToken[]
+}
+
+model RefreshToken {
+    id             String          @id @default(uuid())
+    userId         Int             
+    hashedToken    String          @unique
+    userAgent      String?
+    ip             String?
+    expiresAt      DateTime
+    createdAt      DateTime        @default(now())
+    user           User            @relation(fields: [userId], references: [id])
+}
+
+model Comment {
+    id             Int             @id @default(autoincrement())
+    episodeId      Int
+    userId         Int
+    parentId       Int?
+    content        String
+    commentStatus  CommentStatus   @default(ACTIVE)
+    createdAt      DateTime        @default(now())
+    updatedAt      DateTime        @updatedAt
+    episode        Episode         @relation(fields: [episodeId], references: [id])
+    parent         Comment?        @relation("CommentReplies", fields: [parentId], references: [id])
+    replies        Comment[]       @relation("CommentReplies")
+    user           User            @relation(fields: [userId], references: [id])
+    commentReports CommentReport[]
+}
+
+model CommentReport {
+    id        Int      @id @default(autoincrement())
+    commentId Int
+    userId    Int
+    reason    String
+    createdAt DateTime @default(now())
+    comment   Comment  @relation(fields: [commentId], references: [id])
+    user      User     @relation(fields: [userId], references: [id])
+
+    @@unique([commentId, userId])
+}
+
+model Setting {
+    id            Int      @id @default(autoincrement())
+    userId        Int      @unique
+    isDarkMode    Boolean  @default(false)
+    autoPlay      Boolean  @default(false)
+    autoSkipIntro Boolean  @default(false)
+    autoSkipOutro Boolean  @default(false)
+    autoNext      Boolean  @default(false)
+    createdAt     DateTime @default(now())
+    user          User     @relation(fields: [userId], references: [id])
+}
+
+model Genre {
+    id        Int      @id @default(autoincrement())
+    name      String
+    createdAt DateTime @default(now())
+    animes    Anime[]  @relation("AnimeToGenre")
+}
+
+model Studio {
+    id        Int      @id @default(autoincrement())
+    name      String
+    createdAt DateTime @default(now())
+    animes    Anime[]  @relation("AnimeToStudio")
+}
+
+model WatchLater {
+    userId  Int
+    animeId Int
+    anime   Anime @relation(fields: [animeId], references: [id])
+    user    User  @relation(fields: [userId], references: [id])
+
+    @@id([userId, animeId])
+}
+
+model WatchHistory {
+    userId  Int
+    animeId Int
+    anime   Anime @relation(fields: [animeId], references: [id])
+    user    User  @relation(fields: [userId], references: [id])
+
+    @@id([userId, animeId])
+}
+
+model Notification {
+    id               Int              @id @default(autoincrement())
+    userId           Int
+    notificationType NotificationType
+    content          String
+    isRead           Boolean
+    createdAt        DateTime         @default(now())
+    user             User             @relation(fields: [userId], references: [id])
+}
+
+model NotiSub {
+    id        Int      @id @default(autoincrement())
+    userId    Int
+    animeId   Int
+    createdAt DateTime @default(now())
+    anime     Anime    @relation(fields: [animeId], references: [id])
+    user      User     @relation(fields: [userId], references: [id])
+}
+
+enum AnimeType {
+    TV
+    MOVIE
+    OVA
+    SPECIAL
+    SEQUEL
+}
+
+enum AnimeStatus {
+    UPCOMING
+    ONGOING
+    COMPLETED
+    CANCELLED
+    HIATUS
+}
+
+enum UserRole {
+    USER
+    ADMIN
+    MODERATOR
+}
+
+enum UserStatus {
+    ACTIVE
+    DELETED
+}
+
+enum CommentStatus {
+    ACTIVE
+    DELETED
+}
+
+enum NotificationType {
+    NewEpisode
+    CommentReply
+}
