@@ -1,8 +1,8 @@
-import { requiredString } from "src/common/zod-helper";
-import { z } from "zod/v3";
+import { z } from "zod";
 
 export const createGenreSchema = z.object({
-    name: requiredString("Genre Name"),
+    name: z.string().max(50),
+    slug: z.string().max(50),
 });
 
 export type CreateGenreDto = z.infer<typeof createGenreSchema>;

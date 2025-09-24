@@ -1,15 +1,13 @@
-import { z } from 'zod/v3';
-import { email, optionalUrl, requiredEnum, requiredString } from 'src/common/zod-helper';
-import { UserRole } from '@prisma/client';
-import { UserStatus } from '@prisma/client';
+import { z } from 'zod';
+import { UserRole, UserStatus } from '@prisma/client';
 
 export const createUserSchema = z.object({
-    username: requiredString("Username"),
-    email: email('Email'),
-    hashedPassword: requiredString("Password"),
-    avatarUrl: optionalUrl("AvatarUrl"),
-    userRole: requiredEnum(UserRole, "User Role"),
-    userStatus: requiredEnum(UserStatus, "User Status")
+    username: z.string().max(100),
+    email: z.string().max(100),
+    hashedPassword: z.string().max(255),
+    avatarUrl: z.string().max(500).optional().nullable(),
+    role: z.enum(UserRole).optional(),
+    status: z.enum(UserStatus).optional(),
 })
 
 export type CreateUserDto = z.infer<typeof createUserSchema>;

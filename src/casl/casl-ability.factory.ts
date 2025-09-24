@@ -12,8 +12,8 @@ export class CaslAbilityFactory {
         const { can, cannot, build } = new AbilityBuilder<AppAbility>(createPrismaAbility);
 
         if (!user) {
-            can(Action.Read, 'Anime');
-            can(Action.Read, 'Comment');
+            // can(Action.Read, 'Anime');
+            // can(Action.Read, 'Comment');
             return build();
         }
 
@@ -22,7 +22,7 @@ export class CaslAbilityFactory {
         }
 
         if (user.userRole === Role.MODERATOR) {
-            can(Action.Manage, 'Comment');
+            // can(Action.Manage, 'Comment');
             can(Action.Read, "User");
             // can(Action.Mute, "User");
             // can(Action.Ban, "User");

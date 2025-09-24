@@ -2,15 +2,15 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } f
 import { GenresService } from './genres.service';
 import { ZodValidationPipe } from 'src/common/zod-validation.pipe';
 import { Action } from 'src/casl/casl.types';
+import { getGenresOrderBy } from './genres-orderby';
 
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { AdminModeratorGuard } from 'src/common/guard/admin-moderator-guard';
 import { PoliciesGuard } from 'src/casl/policies-guard';
 import { CheckPolicies } from 'src/casl/check-policies.decorator';
 
 import { createGenreSchema, type CreateGenreDto } from './dto/create-genre.dto';
 import { updateGenreSchema, type UpdateGenreDto } from './dto/update-genre.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { getGenresOrderBy } from './genres-orderby';
 
 @UseGuards(JwtAuthGuard)
 @Controller('admin/genres')

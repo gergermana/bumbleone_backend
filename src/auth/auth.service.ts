@@ -35,7 +35,7 @@ export class AuthService {
             id: user.id,
             username: user.username,
             email: user.email,
-            userRole: user.userRole,
+            userRole: user.role,
             avatarUrl: user.avatarUrl,
         }
 
@@ -54,7 +54,9 @@ export class AuthService {
     }
 
     async refreshToken(refreshToken: string, userAgent?: string, ip?: string) {
+        console.log(refreshToken);
         if (!refreshToken) {
+            console.log("Token not found");
             throw new UnauthorizedException({
                 message: "Token not found",
                 code: AuthErrorCode.INVALID_REFRESH_TOKEN,
@@ -66,6 +68,7 @@ export class AuthService {
         const record = await this.prisma.refreshToken.findUnique({ where: { id: decoded.tokenId } });
         if (!record) {
             // await this.prisma.refreshToken.delete({ where: { id: decoded.tokenId } });
+            console.log("Refresh token reuse detected");
             throw new UnauthorizedException({ 
                 message: "Refresh token reuse detected",
                 code: AuthErrorCode.REFRESH_TOKEN_REUSE,
@@ -74,6 +77,7 @@ export class AuthService {
 
         const isMatch = await bcrypt.compare(refreshToken, record.hashedToken);
         if (!isMatch) {
+            console.log("Refresh token reuse detected");
             await this.prisma.refreshToken.delete({ where: { id: decoded.tokenId } });
             throw new UnauthorizedException({ 
                 message: "Refresh token reuse detected",
@@ -82,6 +86,7 @@ export class AuthService {
         }
 
         if (record.expiresAt < new Date()) {
+            console.log("Refresh token expired");
             await this.prisma.refreshToken.delete({ where: { id: decoded.tokenId } });
             throw new UnauthorizedException({ 
                 message: "Refresh token expired",
@@ -91,6 +96,7 @@ export class AuthService {
 
         const user = await this.prisma.user.findUnique({ where: { id: decoded.sub }});
         if (!user) {
+            console.log("Invalid refresh token");
             throw new UnauthorizedException({
                 message: "Invalid refresh token",
                 code: AuthErrorCode.INVALID_REFRESH_TOKEN,
@@ -123,7 +129,7 @@ export class AuthService {
             id: user.id,
             username: user.username,
             email: user.email,
-            userRole: user.userRole,
+            userRole: user.role,
             avatarUrl: user.avatarUrl,
         }
 

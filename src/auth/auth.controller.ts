@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, HttpStatus, Post, UseGuards, UnauthorizedException, Res, Req } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Post, UseGuards, UnauthorizedException, Res, Req, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { type Request, type Response } from 'express';
 import { LocalAuthGuard } from './guards/local-auth.guard';
@@ -22,13 +22,21 @@ export class AuthController {
             userAgent,
         );
 
-        res.cookie('refreshToken', refreshToken, {
+        res.cookie('access_token', accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            path: '/',
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            path: "/",
+            maxAge: 1000 * 60 * 15, // 15 minutes
+        });
+
+        res.cookie('refresh_token', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            path: "/",
             maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-        })
+        });
 
         setTimeout(() => {
             return res.json({ accessToken, user });
@@ -37,15 +45,31 @@ export class AuthController {
     }
 
     @Post('refresh')
-    async refresh(@Req() req: Request, @Res() res: Response) {
+    async refresh(
+        @Req() req: Request, 
+        @Res() res: Response,
+        @Body() data,
+    ) {
         try {
+            console.log(req.cookies['refresh_token']);
             const { newAccessToken, newRefreshToken, user } = await this.authService.refreshToken(
-                req.cookies['refreshToken'],
+                req.cookies['refresh_token'],
                 req.headers['user-agent'] || '',
                 req.ip || req.socket.remoteAddress,
             );
 
-            res.cookie('refreshToken', newRefreshToken, {
+            console.log("New Access: ", newAccessToken);
+            console.log("New Refresh: ", newRefreshToken);
+
+            res.cookie('access_token', newAccessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                path: "/",
+                maxAge: 1000 * 60 * 15, // 15 minutes
+            });
+
+            res.cookie('refresh_token', newRefreshToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "strict",
@@ -53,9 +77,15 @@ export class AuthController {
                 maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
             });
 
-            return res.json({ accessToken: newAccessToken, user });
+            // if (req.headers['x-ssr-request']) {
+            return res.json({ access_token: newAccessToken, refresh_token: newRefreshToken });
         } catch (error) {
-            res.clearCookie('refreshToken', {
+            res.clearCookie('access_token', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+            });
+            res.clearCookie('refresh_token', {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "strict",

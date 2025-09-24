@@ -7,179 +7,269 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Anime {
+model Franchise {
     id               Int            @id @default(autoincrement())
-    anilistId        Int?
-    franchiseKey     String?
-    franchiseOrder   Int?
-    slug             String         @unique
-    titleEnglish     String
-    titleJapanese    String?
-    titleAlternative String[]
-    animeType        AnimeType
-    animeStatus      AnimeStatus
-    aired            String?
-    premiered        String?
-    overview         String?
-    coverImg         String
-    bannerImg        String
-    createdAt        DateTime       @default(now())
-    updatedAt        DateTime       @updatedAt
+    title            String         @db.VarChar(255)
+    originalTitle    String         @map("original_title") @db.VarChar(255)
+    slug             String         @unique @db.VarChar(255)
+    startYear        Int            @map("start_year")
+    endYear          Int            @map("end_year")
+    createdAt        DateTime       @default(now()) @map("created_at")
+    updatedAt        DateTime       @updatedAt @map("updated_at")
+
+    entries          Entry[]
+
+    @@map("franchise")
+}
+
+model Entry {
+    id               Int            @id @default(autoincrement())
+    franchiseId      Int            @map("franchise_id")
+    sortOrder        Int?           @map("sort_order")
+    slug             String         @unique @db.VarChar(255)
+    englishTitle     String         @map("english_title") @db.VarChar(255)
+    romajiTitle      String?        @map("romaji_title") @db.VarChar(255)
+    japaneseTitle    String?        @map("japanese_title") @db.VarChar(255)
+    synonyms         String?        @db.VarChar(255)
+    aired            String?        @db.VarChar(50)
+    premiered        String?        @db.VarChar(50)
+    duration         Int?
+    status           EntryStatus    @default(UPCOMING)
+    type             EntryType      @default(TV)
+    description      String?        @db.Text
+    malScore         Decimal?       @map("mal_score") @db.Decimal(3, 2)
+    anilistScore     Decimal?       @map("anilist_score") @db.Decimal(3, 2)
+    posterUrl        String         @map("poster_url") @db.VarChar(500)
+    bannerUrl        String?        @map("banner_url") @db.VarChar(500)
+    createdAt        DateTime       @default(now()) @map("created_at")
+    updatedAt        DateTime       @updatedAt @map("updated_at")
+
+    franchise        Franchise      @relation(fields: [franchiseId], references: [id])
     episodes         Episode[]
+    genres           Genre[]        @relation("EntryToGenre")
+    studios          Studio[]       @relation("EntryToStudio")
     notiSubs         NotiSub[]
     watchHistorys    WatchHistory[]
     watchLaters      WatchLater[]
-    genres           Genre[]        @relation("AnimeToGenre")
-    studios          Studio[]       @relation("AnimeToStudio")
+
+    @@map("entry")
+    @@index([franchiseId, sortOrder])
+    @@index([status, type])
 }
 
 model Episode {
-    id            Int           @id @default(autoincrement())
-    animeId       Int
-    episodeNumber Int
-    episodeName   String
-    createdAt     DateTime      @default(now())
-    updatedAt     DateTime      @updatedAt
-    comments      Comment[]
-    anime         Anime         @relation(fields: [animeId], references: [id])
-    videoSources  VideoSource[]
+    id              Int             @id @default(autoincrement())
+    entryId         Int             @map("entry_id")
+    episodeNumber   Int             @map("episode_number")
+    episodeName     String?         @map("episode_name") @db.VarChar(255)  
+    isFiller        Boolean         @default(false) @map("is_filler") 
+    isRecap         Boolean         @default(false) @map("is_recap")     
+    createdAt       DateTime        @default(now()) @map("created_at")
+    updatedAt       DateTime        @updatedAt @map("updated_at")
+
+    entry           Entry           @relation(fields: [entryId], references: [id])
+    comments        Comment[]
+    vidoes          Video[]
+    watchHistories  WatchHistory[]
+
+    @@unique([entryId, episodeNumber])
+    @@map("episode")
+    @@index([isFiller, isRecap])
 }
 
-model VideoSource {
-    id         Int      @id @default(autoincrement())
-    episodeId  Int
-    host       String
-    resolution String?  @default("auto")
-    url        String
-    createdAt  DateTime @default(now())
-    episode    Episode  @relation(fields: [episodeId], references: [id])
+model Video {
+    id              Int                 @id @default(autoincrement())
+    episodeId       Int                 @map("episode_id")    
+    hostName        String              @map("host_name") @db.VarChar(50)
+    quality         String              @db.VarChar(10)
+    resolution      String?             @db.VarChar(10)
+    videoUrl        String              @map("video_url") @db.VarChar(500)
+    format          String              @db.VarChar(10)
+    isActive        Boolean             @default(true) @map("is_active")
+    createdAt       DateTime            @default(now()) @map("created_at")
+    updatedAt       DateTime            @updatedAt @map("updated_at")
+
+    episode         Episode             @relation(fields: [episodeId], references: [id])
+
+    @@map("video")
+    @@index([episodeId, quality, isActive])
+    @@index([isActive])
 }
 
 model User {
-    id             Int             @id @default(autoincrement())
-    username       String
-    email          String          @unique
-    hashedPassword String          @unique
-    avatarUrl      String?
-    userRole       UserRole        @default(USER)
-    userStatus     UserStatus      @default(ACTIVE)
-    mutedUntil     DateTime?
-    bannedUntil    DateTime?
-    createdAt      DateTime        @default(now())
-    updatedAt      DateTime        @updatedAt
-    comments       Comment[]
-    commentReports CommentReport[]
-    notiSubs       NotiSub[]
-    notifications  Notification[]
-    setting        Setting?
-    watchHistory   WatchHistory[]
-    watchLater     WatchLater[]
-    refreshTokens  RefreshToken[]
+    id                  Int             @id @default(autoincrement())
+    username            String          @db.VarChar(100)
+    email               String          @unique @db.VarChar(100)
+    hashedPassword      String          @map("hashed_password") @db.VarChar(255)
+    avatarUrl           String?         @map("avatar_url") @db.VarChar(500)
+    role                UserRole        @default(USER)
+    status              UserStatus      @default(ACTIVE)
+    mutedUntil          DateTime?       @map("muted_until")
+    bannedUntil         DateTime?       @map("banned_until")
+    createdAt           DateTime        @default(now()) @map("created_at")
+    updatedAt           DateTime        @updatedAt @map("updated_at")
+
+    comments            Comment[]
+    commentReports      CommentReport[]
+    notiSubs            NotiSub[]
+    notifications       Notification[]
+    setting             Setting?
+    watchHistory        WatchHistory[]
+    watchLater          WatchLater[]
+    refreshTokens       RefreshToken[]
+
+    @@map("user")
+    @@index([status])
+    @@index([role, status])
 }
 
 model RefreshToken {
     id             String          @id @default(uuid())
-    userId         Int             
-    hashedToken    String          @unique
-    userAgent      String?
-    ip             String?
+    userId         Int             @map("user_id")
+    hashedToken    String          @unique @map("hashed_token") @db.VarChar(255)
+    userAgent      String?         @map("user_agent") @db.VarChar(255)
+    ip             String?         @db.VarChar(255)
     expiresAt      DateTime
-    createdAt      DateTime        @default(now())
+    createdAt      DateTime        @default(now()) @map("created_at")
+
     user           User            @relation(fields: [userId], references: [id])
+
+    @@map("refresh_token")
 }
 
 model Comment {
     id             Int             @id @default(autoincrement())
-    episodeId      Int
-    userId         Int
-    parentId       Int?
-    content        String
-    commentStatus  CommentStatus   @default(ACTIVE)
-    createdAt      DateTime        @default(now())
-    updatedAt      DateTime        @updatedAt
+    episodeId      Int             @map("episode_id")
+    userId         Int             @map("user_id")
+    parentId       Int?            @map("parent_id")
+    content        String          @db.Text
+    status         CommentStatus   @default(ACTIVE)
+    createdAt      DateTime        @default(now()) @map("created_at")
+    updatedAt      DateTime        @updatedAt @map("updated_at")
+
     episode        Episode         @relation(fields: [episodeId], references: [id])
     parent         Comment?        @relation("CommentReplies", fields: [parentId], references: [id])
     replies        Comment[]       @relation("CommentReplies")
     user           User            @relation(fields: [userId], references: [id])
     commentReports CommentReport[]
+
+    @@map("comment")
+    @@index([episodeId, status, createdAt])
+    @@index([parentId])
 }
 
 model CommentReport {
-    id        Int      @id @default(autoincrement())
-    commentId Int
-    userId    Int
-    reason    String
-    createdAt DateTime @default(now())
-    comment   Comment  @relation(fields: [commentId], references: [id])
-    user      User     @relation(fields: [userId], references: [id])
+    id          Int         @id @default(autoincrement())
+    commentId   Int         @map("comment_id")
+    userId      Int         @map("user_id")
+    reason      String      @db.Text
+    createdAt   DateTime    @default(now()) @map("created_at")
+
+    comment     Comment  @relation(fields: [commentId], references: [id])
+    user        User     @relation(fields: [userId], references: [id])
 
     @@unique([commentId, userId])
+    @@map("comment_report")
+
 }
 
 model Setting {
-    id            Int      @id @default(autoincrement())
-    userId        Int      @unique
-    isDarkMode    Boolean  @default(false)
-    autoPlay      Boolean  @default(false)
-    autoSkipIntro Boolean  @default(false)
-    autoSkipOutro Boolean  @default(false)
-    autoNext      Boolean  @default(false)
-    createdAt     DateTime @default(now())
-    user          User     @relation(fields: [userId], references: [id])
+    id              Int         @id @default(autoincrement())
+    userId          Int         @unique
+    isDarkMode      Boolean     @default(true)
+    autoPlay        Boolean     @default(false)
+    autoSkipIntro   Boolean     @default(false)
+    autoSkipOutro   Boolean     @default(false)
+    autoNext        Boolean     @default(true)
+    createdAt       DateTime    @default(now()) @map("created_at")
+    updatedAt       DateTime    @updatedAt @map("updated_at")
+
+    user            User        @relation(fields: [userId], references: [id])
+
+    @@map("setting")
 }
 
 model Genre {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    animes    Anime[]  @relation("AnimeToGenre")
+    id          Int         @id @default(autoincrement())
+    name        String      @unique @db.VarChar(50)
+    slug        String      @unique @db.VarChar(50)
+    createdAt   DateTime    @default(now()) @map("created_at")
+    updatedAt   DateTime    @updatedAt @map("updated_at")
+
+    entries     Entry[]     @relation("EntryToGenre")
+
+    @@map("genre")
 }
 
 model Studio {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    animes    Anime[]  @relation("AnimeToStudio")
+    id          Int         @id @default(autoincrement())
+    name        String      @unique @db.VarChar(50)
+    slug        String      @unique @db.VarChar(50)
+    createdAt   DateTime    @default(now()) @map("created_at")
+    updatedAt   DateTime    @updatedAt @map("updated_at")
+
+    entries     Entry[]     @relation("EntryToStudio")
+
+    @@map("studio")
 }
 
 model WatchLater {
-    userId  Int
-    animeId Int
-    anime   Anime @relation(fields: [animeId], references: [id])
-    user    User  @relation(fields: [userId], references: [id])
+    id          Int         @id @default(autoincrement())
+    userId      Int         @map("user_id")
+    entryId     Int         @map("entry_id")
+    createdAt   DateTime    @default(now()) @map("created_at")
+    updatedAt   DateTime    @updatedAt @map("updated_at")
 
-    @@id([userId, animeId])
+    entry       Entry       @relation(fields: [entryId], references: [id])
+    user        User        @relation(fields: [userId], references: [id])
+
+    @@unique([userId, entryId])
+    @@map("watch_later")
 }
 
 model WatchHistory {
-    userId  Int
-    animeId Int
-    anime   Anime @relation(fields: [animeId], references: [id])
-    user    User  @relation(fields: [userId], references: [id])
+    id          Int         @id @default(autoincrement())
+    userId      Int         @map("user_id")
+    entryId     Int         @map("entry_id")
+    episodeId   Int?        @map("episode_id") 
+    createdAt   DateTime    @default(now()) @map("created_at")
+    updatedAt   DateTime    @updatedAt @map("updated_at")
 
-    @@id([userId, animeId])
+    entry       Entry       @relation(fields: [entryId], references: [id])
+    episode     Episode?    @relation(fields: [episodeId], references: [id])
+    user        User        @relation(fields: [userId], references: [id])
+
+    @@unique([userId, entryId])
+    @@map("watch_history")
 }
 
 model Notification {
-    id               Int              @id @default(autoincrement())
-    userId           Int
-    notificationType NotificationType
-    content          String
-    isRead           Boolean
-    createdAt        DateTime         @default(now())
-    user             User             @relation(fields: [userId], references: [id])
+    id                  Int                 @id @default(autoincrement())
+    userId              Int                 @map("user_id")
+    notificationType    NotificationType    @default(NEWEPISODE) @map("notification_type")
+    content             String              @db.Text
+    isRead              Boolean             @default(false)
+    createdAt           DateTime            @default(now()) @map("created_at")
+
+    user                User                @relation(fields: [userId], references: [id])
+
+    @@map("notification")
+    @@index([userId, createdAt])
 }
 
 model NotiSub {
-    id        Int      @id @default(autoincrement())
-    userId    Int
-    animeId   Int
-    createdAt DateTime @default(now())
-    anime     Anime    @relation(fields: [animeId], references: [id])
-    user      User     @relation(fields: [userId], references: [id])
+    id          Int         @id @default(autoincrement())
+    userId      Int         @map("user_id")
+    entryId     Int         @map("entry_id")
+    createdAt   DateTime    @default(now()) @map("created_at")
+
+    entry       Entry       @relation(fields: [entryId], references: [id])
+    user        User        @relation(fields: [userId], references: [id])
+
+    @@map("noti_sub")
 }
 
-enum AnimeType {
+enum EntryType {
     TV
     MOVIE
     OVA
@@ -187,7 +277,7 @@ enum AnimeType {
     SEQUEL
 }
 
-enum AnimeStatus {
+enum EntryStatus {
     UPCOMING
     ONGOING
     COMPLETED
@@ -212,6 +302,6 @@ enum CommentStatus {
 }
 
 enum NotificationType {
-    NewEpisode
-    CommentReply
+    NEWEPISODE
+    COMMENTREPLY
 }

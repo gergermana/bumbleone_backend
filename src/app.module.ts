@@ -4,21 +4,23 @@ import { AppService } from './app.service';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
-import { AnimesModule } from './features/animes/animes.module';
 import { GenresModule } from './features/genres/genres.module';
 import { StudiosModule } from './features/studios/studios.module';
 import { UsersModule } from './features/users/users.module';
 import { CommentsModule } from './features/comments/comments.module';
+import { EntriesModule } from './features/entries/entries.module';
+import { FranchisesModule } from './features/franchises/franchises.module';
 
 @Module({
   imports: [
     PrismaModule,
     AuthModule,
-    AnimesModule,
     GenresModule,
     StudiosModule,
     UsersModule,
     CommentsModule,
+    EntriesModule,
+    FranchisesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

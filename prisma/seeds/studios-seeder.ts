@@ -8,7 +8,10 @@ export async function StudiosSeeder() {
 
     for(const name of studioNames){
         await prisma.studio.create({
-            data: { name },
+            data: { 
+                name,
+                slug: name,
+            },
         })
     }
 

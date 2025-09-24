@@ -1,4 +1,4 @@
-import { z } from "zod/v3";
+import { z } from "zod";
 import { createGenreSchema } from './create-genre.dto';
 
 export const updateGenreSchema = createGenreSchema.partial();

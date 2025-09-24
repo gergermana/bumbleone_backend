@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-export function getAnimesOrderBy(sorting?: string): Prisma.AnimeOrderByWithRelationInput {
+export function getEntriesOrderBy(sorting?: string): Prisma.EntryOrderByWithRelationInput {
     if (!sorting) {
         return { id: "asc" };
     }
@@ -14,11 +14,11 @@ export function getAnimesOrderBy(sorting?: string): Prisma.AnimeOrderByWithRelat
     }
 
     if (sorting === "A_TO_Z") {
-        return { titleEnglish: "asc" };
+        return { englishTitle: "asc" };
     }
 
     if (sorting === "Z_TO_A") {
-        return { titleEnglish: "desc" };
+        return { englishTitle: "desc" };
     }
 
     return { id: "asc" };

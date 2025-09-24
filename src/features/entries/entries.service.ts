@@ -1,17 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateAnimeDto } from './dto/create-anime.dto';
-import { UpdateAnimeDto } from './dto/update-anime.dto';
-import { Prisma, Anime } from '@prisma/client';
+import { Entry, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
+import { type CreateEntryDto } from './dto/create-entry.dto';
+import { type UpdateEntryDto } from './dto/update-entry.dto';
+
 @Injectable()
-export class AnimesService {
-  constructor(private prisma: PrismaService) {}
+export class EntriesService {
+constructor(private prisma: PrismaService) {}
 
-    create(createAnimeDto: CreateAnimeDto) {
-        const { genres, studios, ...rest } = createAnimeDto;
+    create(createEntryDto: CreateEntryDto) {
+        const { genres, studios, ...rest } = createEntryDto;
 
-        return this.prisma.anime.create({
+        return this.prisma.entry.create({
             data: {
                 ...rest,
                 genres: genres 
@@ -32,15 +33,49 @@ export class AnimesService {
         });
     }
 
-    async findAll(params: {
+    async findAllPublic(params: {
         skip?: number;
         take?: number;
-        cursor?: Prisma.AnimeWhereUniqueInput;
-        where?: Prisma.AnimeWhereInput;
-        orderBy?: Prisma.AnimeOrderByWithRelationInput;
-    }): Promise<{ datalist: Anime[]; total: number }> {
+        cursor?: Prisma.EntryWhereUniqueInput;
+        where?: Prisma.EntryWhereInput;
+        orderBy?: Prisma.EntryOrderByWithRelationInput;
+    }): Promise<{ datalist: Entry[]; total: number }> {
         const { skip, take, cursor, where, orderBy } = params;
-        const initDatalist = await this.prisma.anime.findMany({
+        const initDatalist = await this.prisma.entry.findMany({
+            skip,
+            take,
+            cursor,
+            where,
+            orderBy,
+            include: { 
+                genres: true, 
+                studios: true,
+            },
+        });
+
+        return {
+            datalist: initDatalist.map(datalist => ({
+                ...datalist,
+                genres: datalist.genres.map(g => g.id),
+                studios: datalist.studios.map(s => s.id),
+            })),
+            total: await this.prisma.entry.count({
+                cursor,
+                where,
+                orderBy,
+            }),
+        }
+    }
+
+    async findAllAdmin(params: {
+        skip?: number;
+        take?: number;
+        cursor?: Prisma.EntryWhereUniqueInput;
+        where?: Prisma.EntryWhereInput;
+        orderBy?: Prisma.EntryOrderByWithRelationInput;
+    }): Promise<{ datalist: Entry[]; total: number }> {
+        const { skip, take, cursor, where, orderBy } = params;
+        const initDatalist = await this.prisma.entry.findMany({
             skip,
             take,
             cursor,
@@ -58,7 +93,7 @@ export class AnimesService {
                 genres: datalist.genres.map(g => g.id),
                 studios: datalist.studios.map(s => s.id),
             })),
-            total: await this.prisma.anime.count({
+            total: await this.prisma.entry.count({
                 cursor,
                 where,
                 orderBy,
@@ -66,17 +101,17 @@ export class AnimesService {
         }
     }
 
-    async findOne(animeWhereUniqueInput: Prisma.AnimeWhereUniqueInput): Promise<Anime | null> {
-        return this.prisma.anime.findUnique({
+    async findOne(animeWhereUniqueInput: Prisma.EntryWhereUniqueInput): Promise<Entry | null> {
+        return this.prisma.entry.findUnique({
             where: animeWhereUniqueInput,
         });
     }
 
-    update(id: number, updateAnimeDto: UpdateAnimeDto) {
+    update(id: number, updateAnimeDto: UpdateEntryDto) {
         try {
         const { genres, studios, ...rest } = updateAnimeDto;
 
-        return this.prisma.anime.update({
+        return this.prisma.entry.update({
             where: { id },
             data: {
                 ...rest,
@@ -104,7 +139,7 @@ export class AnimesService {
         }
     }
 
-  remove(id: number) {
-    return `This action removes a #${id} anime`;
-  }
+    remove(id: number) {
+        return `This action removes a #${id} anime`;
+    }
 }

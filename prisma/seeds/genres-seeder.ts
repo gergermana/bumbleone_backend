@@ -8,7 +8,10 @@ export async function GenresSeeder() {
 
     for(const name of genreNames){
         await prisma.genre.create({
-            data: { name },
+            data: { 
+                name,
+                slug: name,
+            },
         })
     }
 

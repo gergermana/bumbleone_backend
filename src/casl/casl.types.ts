@@ -1,6 +1,6 @@
 import { InferSubjects } from "@casl/ability";
 import { Subjects } from "@casl/prisma";
-import { Anime, Comment, Genre, Studio, User } from "@prisma/client";
+import { Entry, Comment, Genre, Studio, User } from "@prisma/client";
 
 export enum Action {
     Manage = 'manage',
@@ -19,7 +19,7 @@ export enum Action {
 //     | 'all';
 
 export type AppSubjects = Subjects<{
-    Anime: Anime;
+    Anime: Entry;
     Comment: Comment;
     Genre: Genre;
     Studio: Studio;

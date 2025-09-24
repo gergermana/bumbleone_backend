@@ -9,8 +9,9 @@ import { ZodValidationPipe } from 'src/common/zod-validation.pipe';
 
 import { createUserSchema, type CreateUserDto } from 'src/features/users/dto/create-user.dto';
 import { updateUserSchema, type UpdateUserDto } from 'src/features/users/dto/update-user.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
-@UseGuards(AdminModeratorGuard, PoliciesGuard)
+@UseGuards(JwtAuthGuard, AdminModeratorGuard, PoliciesGuard)
 @Controller('admin/users')
 export class AdminUsersController {
   constructor(private readonly usersService: UsersService) {}

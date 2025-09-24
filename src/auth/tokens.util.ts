@@ -4,7 +4,7 @@ import * as crypto from 'crypto';
 export const newJti = () => crypto.randomUUID();
 
 export const accessPayload = (user: User) =>
-    ({ sub: user.id, email: user.email, userRole: user.userRole });
+    ({ sub: user.id, email: user.email, userRole: user.role });
 
 export const refreshPayload = (userId: number, tokenId: string) => 
     ({ sub: userId, tokenId });

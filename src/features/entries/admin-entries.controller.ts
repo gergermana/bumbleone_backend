@@ -1,53 +1,54 @@
 import { Controller, Post, Get, Patch, Delete, Query, Param, Body, UseGuards } from "@nestjs/common";
-import { AnimesService } from "src/features/animes/animes.service";
 import { Action } from "src/casl/casl.types";
 import { ZodValidationPipe } from "src/common/zod-validation.pipe";
+import { EntriesService } from "./entries.service";
+import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
+import { EntryStatus, EntryType } from "@prisma/client";
+import { getEntriesOrderBy } from "src/features/entries/entries-orderby";
 
 import { AdminModeratorGuard } from "src/common/guard/admin-moderator-guard";
 import { PoliciesGuard } from "src/casl/policies-guard";
 import { CheckPolicies } from "src/casl/check-policies.decorator";
 
-import { createAnimeSchema, type CreateAnimeDto } from "./dto/create-anime.dto";
-import { updateAnimeSchema, type UpdateAnimeDto } from "./dto/update-anime.dto";
-import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
-import { AnimeStatus, AnimeType } from "@prisma/client";
-import { getAnimesOrderBy } from "src/features/animes/animes-orderby";
+import { createEntrySchema, type CreateEntryDto } from "./dto/create-entry.dto";
+import { updateEntrySchema, type UpdateEntryDto } from "./dto/update-entry.dto";
 
-@UseGuards(JwtAuthGuard)
-@Controller('admin/animes')
-export class AdminAnimesController {
-    constructor(private readonly animesService: AnimesService) {}
+@UseGuards(JwtAuthGuard, AdminModeratorGuard, PoliciesGuard)
+@Controller('admin/entries')
+export class AdminEntriesController {
+    constructor(private readonly entriesService: EntriesService) {}
 
     @Post()
     @CheckPolicies((ability) => ability.can(Action.Create, 'Anime'))
     create(
-        @Body(new ZodValidationPipe(createAnimeSchema)) createAnimeDto: CreateAnimeDto,
+        @Body(new ZodValidationPipe(createEntrySchema)) createEntryDto: CreateEntryDto,
     ) {
-        return this.animesService.create(createAnimeDto);
+        return this.entriesService.create(createEntryDto);
     }
 
     @Get()
     @CheckPolicies((ability) => ability.can(Action.Read, 'Anime'))
-    findAll(
+    async findAll(
         @Query('page') page?: string,
         @Query('limit') limit?: string,
         @Query('sorting') sorting?: string | "LATEST",
-        @Query('animeType') animeType?: AnimeType | "ALL",
-        @Query('animeStatus') animeStatus?: AnimeStatus | "ALL",
+        @Query('animeType') animeType?: EntryType | "ALL",
+        @Query('animeStatus') animeStatus?: EntryStatus | "ALL",
     ) {
         const currentPage = Number(page) || 1;
         const currentLimit = Number(limit) || 20;
         const skip = (currentPage - 1) * currentLimit; 
-        const orderBy = getAnimesOrderBy(sorting);
+        const orderBy = getEntriesOrderBy(sorting);
         const typeFilter = animeType && animeType !== "ALL" ? animeType : undefined;
         const statusFilter = animeStatus && animeStatus !== "ALL" ? animeStatus : undefined;
-        return this.animesService.findAll({
+
+        return this.entriesService.findAllAdmin({
             skip,
             take: currentLimit,
             orderBy,
             where: { 
-                animeType: typeFilter,
-                animeStatus: statusFilter, 
+                type: typeFilter,
+                status: statusFilter, 
             },
         });
     }
@@ -55,21 +56,21 @@ export class AdminAnimesController {
     @Get(':id')
     @CheckPolicies((ability) => ability.can(Action.Read, 'Anime'))
     findOne(@Param('id') id: string) {
-        return this.animesService.findOne({ id: Number(id) });
+        return this.entriesService.findOne({ id: Number(id) });
     }
 
     @Patch(':id')
     @CheckPolicies((ability) => ability.can(Action.Update, 'Anime'))
     update(
         @Param('id') id: string, 
-        @Body(new ZodValidationPipe(updateAnimeSchema)) updateAnimeDto: UpdateAnimeDto,
+        @Body(new ZodValidationPipe(updateEntrySchema)) updateEntryDto: UpdateEntryDto,
     ) {
-        return this.animesService.update(+id, updateAnimeDto);
+        return this.entriesService.update(+id, updateEntryDto);
     }
 
     @Delete(':id')
     @CheckPolicies((ability) => ability.can(Action.Delete, 'Anime'))
     remove(@Param('id') id: string) {
-        return this.animesService.remove(+id);
+        return this.entriesService.remove(+id);
     }
 }
